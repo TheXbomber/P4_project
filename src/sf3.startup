@@ -1,0 +1,5 @@
+ip addr add 10.50.3.10/24 dev eth0
+ip link set eth0 up
+ip route add default via 10.50.3.1
+
+ip neigh add 10.50.3.1 lladdr 00:00:00:00:00:F0 dev eth0

@@ -1,0 +1,12 @@
+- Need to support IPv4 and MPLS
+- SFF must remove NSH before delivering to SF and must reinsert it when sending
+- Classifier table that looks at fields and chooses the action to perform
+- After chain completion, simply rely on IPv4
+- To emulate a SF we simply design a reflector (with logs) in each of them
+- Generate traffic in a way s.t. MTU constraints are not violated (i.e., avoid fragmentation, e.g., use 1000 bytes)
+
+EXAM
+- Comment one of the two projects (e.g. problem statement and code)
+- Run tests
+- Open question over several topics (might be one of the 4 pillars)
+- More questions on the topic
