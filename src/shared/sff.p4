@@ -70,6 +70,12 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
 
+    action ipv4_forward(bit<9> egress_port, bit<48> next_hop_mac) {
+        hdr.ethernet.dstAddr = next_hop_mac;
+        std_meta.egress_spec = egress_port;
+        hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+
     table sff_nsh_forwarding {
         key = {
             hdr.nsh.spi: exact;
@@ -90,7 +96,8 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
     // Traditional lookup used exclusively for return traffic path bypass
     table native_ipv4_shortest_path {
         key = { hdr.ipv4.dstAddr: lpm; }
-        actions = { ... }
+        actions = { ipv4_forward; drop; }
+        size = 256;
     }
 
     apply {
