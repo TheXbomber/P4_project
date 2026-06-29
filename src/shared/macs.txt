@@ -1,0 +1,69 @@
+H
+ip link set eth0 address 00:2a:00:00:00:00
+ip link set eth1 address 00:2a:01:00:00:00
+ip link set eth2 address 00:2a:02:00:00:00
+ip link set eth3 address 00:2a:03:00:00:00
+
+
+F
+ip link set eth0 address 00:0f:00:00:00:00
+ip link set eth1 address 00:0f:01:00:00:00
+ip link set eth2 address 00:0f:02:00:00:00
+ip link set eth3 address 00:0f:03:00:00:00
+
+
+B classifier
+
+ip link set eth0 address 00:0b:00:00:00:00
+ip link set eth1 address 00:0b:01:00:00:00
+ip link set eth2 address 00:0b:02:00:00:00
+ip link set eth3 address 00:0b:03:00:00:00
+
+
+A 
+ip link set eth0 address 00:0a:00:00:00:00
+ip link set eth1 address 00:0a:01:00:00:00
+ip link set eth2 address 00:0a:02:00:00:00
+ip link set eth3 address 00:0a:03:00:00:00
+d
+
+ip link set eth0 address 00:0d:00:00:00:00
+ip link set eth1 address 00:0d:01:00:00:00
+ip link set eth2 address 00:0d:02:00:00:00
+ip link set eth3 address 00:0d:03:00:00:00
+g
+
+ip link set eth0 address 00:1a:00:00:00:00
+ip link set eth1 address 00:1a:01:00:00:00
+ip link set eth2 address 00:1a:02:00:00:00
+ip link set eth3 address 00:1a:03:00:00:00
+E 
+
+ip link set eth0 address 00:0e:00:00:00:00
+ip link set eth1 address 00:0e:01:00:00:00
+ip link set eth2 address 00:0e:02:00:00:00
+ip link set eth3 address 00:0e:03:00:00:00
+
+C
+
+ip link set eth0 address 00:0c:00:00:00:00
+ip link set eth1 address 00:0c:01:00:00:00
+ip link set eth2 address 00:0c:02:00:00:00
+ip link set eth3 address 00:0c:03:00:00:00
+h1
+ip link set eth0 address 00:3a:00:00:00:00
+h2
+ip link set eth0 address 00:4a:00:00:00:00
+
+h3
+ip link set eth0 address 00:5a:00:00:00:00
+
+h4
+ip link set eth0 address 00:6a:00:00:00:00
+
+sf1
+00:1b:00:00:00:00
+sf2
+00:2b:00:00:00:00
+sf3
+00:3b:00:00:00:00

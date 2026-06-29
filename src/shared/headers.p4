@@ -56,7 +56,8 @@ struct headers {
 }
 
 struct metadata {
-    // Add custom metadata fields if needed for tracking state
+    bit<24> spi;
+    bit<8>  si;
 }
 
 #endif

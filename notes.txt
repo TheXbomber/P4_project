@@ -10,3 +10,7 @@ EXAM
 - Run tests
 - Open question over several topics (might be one of the 4 pillars)
 - More questions on the topic
+
+COMMANDS:
+
+Custom image for service function nodes must be build by running: docker build -f dockerfile.sf -t service_function .

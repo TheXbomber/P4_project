@@ -1,0 +1,197 @@
+# =============================================================
+# H  (edge switch, h3/h4 side)
+# simple switch — native_ipv4_shortest_path only
+# h3 = 10.0.1.10, h4 = 10.0.1.20
+# h1 = 10.1.1.10, h2 = 10.1.1.20
+# port 0 = toward A/B
+# port 1 = toward h3
+# port 2 = toward h4
+# ==================  ===========================================
+
+# Outgoing: h3,h4 -> h1,h2 (toward A/B side)
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.10/32 => 0 00:0f:01:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.20/32 => 0 00:0f:01:00:00:00
+
+# Incoming: h1,h2 -> h3,h4 (delivered by D after end_of_chain)
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.10/32 => 1 00:5a:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.20/32 => 2 00:6a:00:00:00:00
+
+
+# =============================================================
+# A  (edge switch, h1/h2 side)
+# simple switch — native_ipv4_shortest_path only
+# h1 = 10.1.1.10, h2 = 10.1.1.20
+# h3 = 10.0.1.10, h4 = 10.0.1.20
+# port 0 = toward h1
+# port 1 = toward h2  (inferred from mac scheme)
+# port 2 = toward h3/h4 (inferred)
+# port 3 = toward B
+# =============================================================
+
+# Return traffic: h1,h2 -> h3,h4 (outgoing from A toward B)
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.10/32 => 3 00:0b:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.20/32 => 3 00:0b:00:00:00:00
+
+# Incoming: h3,h4 -> h1,h2 (delivered after SFC, arriving from B side)
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.10/32 => 0 00:3a:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.20/32 => 1 00:4a:00:00:00:00
+
+
+# =============================================================
+# B  (classifier — classifier.p4)
+# port 0 = toward A (h1/h2 side, return traffic)
+# port 1 = toward D (SPI=13 forward)
+# port 3 = toward C (SPI=24 forward)
+# =============================================================
+
+table_set_default MyIngress.sfc_classification drop
+
+# SPI=13: h3 (10.0.1.10) -> h1 (10.1.1.10), TCP, chain SF1->SF3->SF2
+#         spi=13, si=3, mpls=101, port=1, next_hop=D
+table_add MyIngress.sfc_classification sfc_encapsulate \
+    10.0.1.10 10.1.1.10 6 => 13 3 101 1 00:0d:03:00:00:00
+
+# SPI=24: h4 (10.0.1.20) -> h2 (10.1.1.20), TCP, chain SF3 only
+#         spi=24, si=2, mpls=201, port=3, next_hop=C
+table_add MyIngress.sfc_classification sfc_encapsulate \
+    10.0.1.20 10.1.1.20 6 => 24 2 201 3 00:0c:01:00:00:00
+
+# Return traffic (h1,h2 -> h3,h4): plain IPv4 forward toward A
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route \
+    10.0.1.10/32 => 0 00:0a:02:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route \
+    10.0.1.20/32 => 0 00:0a:02:00:00:00
+
+
+# =============================================================
+# C  (transit — transit.p4)
+# port 3 = toward B
+# SPI=24 forward only: B->C->E
+# label 201: B->C, swap to 202 toward E
+# =============================================================
+
+table_set_default MyIngress.mpls_core_transit drop
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward \
+    201 => 202 3 00:0e:01:00:00:00
+
+
+# =============================================================
+# F  (transit — transit.p4)
+# port 0 = toward D
+# port 2 = toward G
+# SPI=13 forward:  D->F (label 102) -> swap 103 -> G
+# SPI=13 return:   G->F (label 106) -> swap 107 -> D
+# =============================================================
+
+table_set_default MyIngress.mpls_core_transit drop
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward \
+    102 => 103 2 00:1a:02:00:00:00
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward \
+    106 => 107 0 00:0d:02:00:00:00
+
+# Return traffic (h1,h2 -> h3,h4): plain IPv4 toward B/A
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route \
+    10.0.1.10/32 => 0 00:0b:02:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route \
+    10.0.1.20/32 => 0 00:0b:02:00:00:00
+
+
+# =============================================================
+# G  (transit — transit.p4)
+# port 0 = toward E
+# port 2 = toward F
+# SPI=13 forward:  F->G (label 103) -> swap 104 -> E
+# SPI=13 return:   E->G (label 105) -> swap 106 -> F
+# =============================================================
+
+table_set_default MyIngress.mpls_core_transit drop
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward \
+    103 => 104 0 00:0e:02:00:00:00
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward \
+    105 => 106 2 00:0f:02:00:00:00
+
+
+# =============================================================
+# D  (SFF — sff.p4 with updated sf_return_proxy key: port + meta.spi)
+#
+# SF1 on port 0, mac 00:1b:00:00:00:00
+# SF2 on port 1, mac 00:2b:00:00:00:00
+# port 2 = toward H (h3/h4, for end_of_chain delivery)
+# port 3 = toward F (MPLS core, after SF1)
+#
+# SPI=13 chain at D:
+#   arriving SI=3 → proxy_to_sf SF1 (port 0)
+#   SF1 returns bare port 0, meta.spi=13 → proxy_return_to_core SI=2 label=102 toward F
+#   arriving SI=1 → proxy_to_sf SF2 (port 1)
+#   SF2 returns bare port 1, meta.spi=13 → sf_final_forward toward H (h3)
+# =============================================================
+
+table_set_default MyIngress.sff_nsh_forwarding drop
+table_set_default MyIngress.sf_return_proxy drop
+
+# SPI=13, SI=3: deliver to SF1
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf \
+    13 3 => 0 00:1b:00:00:00:00
+
+# SPI=13, SI=1: deliver to SF2
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf \
+    13 1 => 1 00:2b:00:00:00:00
+
+# SF1 returns bare on port 0, came from SPI=13
+# re-wrap: spi=13, next_si=2, label=102, toward F
+table_add MyIngress.sf_return_proxy proxy_return_to_core \
+    0 13 => 13 2 102 3 00:0f:00:00:00:00
+
+# SF2 returns bare on port 1, came from SPI=13
+# end of chain: strip everything, forward to H toward h3
+table_add MyIngress.sf_return_proxy sf_final_forward \
+    1 13 => 2 00:0f:00:00:00:00
+
+# Return traffic (h1,h2 -> h3,h4): plain IPv4 toward H
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward \
+    10.0.1.10/32 => 2 00:5a:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward \
+    10.0.1.20/32 => 2 00:6a:00:00:00:00
+
+
+# =============================================================
+# E  (SFF — sff.p4 with updated sf_return_proxy key: port + meta.spi)
+#
+# SF3 on port 0, mac 00:3b:00:00:00:00
+# port 2 = toward G (MPLS core, return direction)
+# port 3 = toward C/A (for SPI=24 end_of_chain delivery toward h2)
+#
+# SPI=13 chain at E:
+#   arriving SI=2 → proxy_to_sf SF3 (port 0)
+#   SF3 returns bare port 0, meta.spi=13 → proxy_return_to_core SI=1 label=105 toward G
+#
+# SPI=24 chain at E:
+#   arriving SI=2 → proxy_to_sf SF3 (port 0)
+#   SF3 returns bare port 0, meta.spi=24 → sf_final_forward toward A/h2
+# =============================================================
+
+table_set_default MyIngress.sff_nsh_forwarding drop
+table_set_default MyIngress.sf_return_proxy drop
+
+# SPI=13, SI=2: deliver to SF3
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf \
+    13 2 => 0 00:3b:00:00:00:00
+
+# SPI=24, SI=2: deliver to SF3 (same port, no conflict in sff_nsh_forwarding)
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf \
+    24 2 => 0 00:3b:00:00:00:00
+
+# SF3 returns bare on port 0, came from SPI=13
+# re-wrap: spi=13, next_si=1, label=105, toward G
+table_add MyIngress.sf_return_proxy proxy_return_to_core \
+    0 13 => 13 1 105 2 00:1a:00:00:00:00
+
+# SF3 returns bare on port 0, came from SPI=24
+# end of chain: strip everything, forward toward A/h2
+table_add MyIngress.sf_return_proxy sf_final_forward \
+    0 24 => 3 00:1a:00:00:00:00
