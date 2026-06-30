@@ -1,0 +1,10 @@
+table_set_default MyIngress.sff_nsh_forwarding drop
+table_set_default MyIngress.sf_return_proxy drop
+
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf 13 2 => 0 00:3b:00:00:00:00
+
+table_add MyIngress.sff_nsh_forwarding proxy_to_sf 24 2 => 0 00:3b:00:00:00:00
+
+table_add MyIngress.sf_return_proxy proxy_return_to_core 0 13 => 13 1 105 2 00:1a:00:00:00:00
+
+table_add MyIngress.sf_return_proxy sf_final_forward 0 24 => 3 00:1a:00:00:00:00

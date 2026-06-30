@@ -1,0 +1,6 @@
+
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.10/32 => 1 00:5a:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.1.1.20/32 => 2 00:6a:00:00:00:00
+
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.10/32 => 0 00:0f:01:00:00:00
+table_add MyIngress.native_ipv4_shortest_path native_ipv4_route 10.0.1.20/32 => 0 00:0f:01:00:00:00

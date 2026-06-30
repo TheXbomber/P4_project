@@ -1,0 +1,13 @@
+table_set_default MyIngress.sfc_classification drop
+
+# SPI=13: h3 (10.0.1.10) -> h1 (10.1.1.10), TCP, chain SF1->SF3->SF2
+#         spi=13, si=3, mpls=101, port=1, next_hop=D
+table_add MyIngress.sfc_classification sfc_encapsulate 10.0.1.10 10.1.1.10 6 => 13 3 101 1 00:0d:03:00:00:00
+
+# SPI=24: h4 (10.0.1.20) -> h2 (10.1.1.20), TCP, chain SF3 only
+#         spi=24, si=2, mpls=201, port=3, next_hop=C
+table_add MyIngress.sfc_classification sfc_encapsulate 10.0.1.20 10.1.1.20 6 => 24 2 201 3 00:0c:01:00:00:00
+
+# Return traffic (h1,h2 -> h3,h4): plain IPv4 forward toward A
+table_add MyIngress.sfc_classification ipv4_forward 10.0.1.20 10.1.1.20 6 => 3 00:0c:01:00:00:00
+table_add MyIngress.sfc_classification ipv4_forward 10.0.1.20 10.1.1.20 6 => 3 00:0c:01:00:00:00

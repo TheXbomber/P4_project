@@ -1,0 +1,4 @@
+
+table_set_default MyIngress.mpls_core_transit drop
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward 201 => 202 3 00:0e:01:00:00:00

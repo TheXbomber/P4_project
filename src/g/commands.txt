@@ -1,0 +1,5 @@
+table_set_default MyIngress.mpls_core_transit drop
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward 103 => 104 0 00:0e:02:00:00:00
+
+table_add MyIngress.mpls_core_transit mpls_swap_and_forward 105 => 106 2 00:0f:02:00:00:00
