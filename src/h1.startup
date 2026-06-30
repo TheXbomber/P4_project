@@ -1,6 +1,8 @@
 
 ip link set eth0 address 00:3a:00:00:00:00
 ip link set eth0 up
+ip link set dev eth0 mtu 1400
+ethtool -K eth0 tx off
 
 
 ip addr add 10.0.1.10/24 dev eth0

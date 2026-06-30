@@ -38,10 +38,14 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         meta.spi = hdr.nsh.spi;
         meta.si  = hdr.nsh.si;
 
+        // Encode SPI into DSCP (upper 6 bits of diffserv) as SPI - 1
+        hdr.ipv4.diffserv = (bit<8>)(((bit<8>)(hdr.nsh.spi - 1) << 2) | (hdr.ipv4.diffserv & 3));
+
         hdr.mpls.setInvalid();
         hdr.nsh.setInvalid();
         hdr.ethernet = hdr.inner_ethernet;
         hdr.ethernet.dstAddr = sf_mac;
+        hdr.inner_ethernet.setInvalid();
         std_meta.egress_spec = egress_port;
     }
 
@@ -73,6 +77,7 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         hdr.nsh.setInvalid();
         hdr.ethernet = hdr.inner_ethernet;
         hdr.ethernet.dstAddr = next_hop_mac;
+        hdr.inner_ethernet.setInvalid();
         std_meta.egress_spec = egress_port;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
@@ -112,6 +117,8 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         if (hdr.mpls.isValid() && hdr.nsh.isValid()) {
             sff_nsh_forwarding.apply();
         } else if (!hdr.mpls.isValid() && !hdr.nsh.isValid() && hdr.ipv4.isValid()) {
+            // Decode SPI from DSCP (upper 6 bits of diffserv)
+            meta.spi = (bit<24>)(hdr.ipv4.diffserv >> 2);
             if (sf_return_proxy.apply().miss) {
                 native_ipv4_shortest_path.apply();
             }
@@ -120,7 +127,23 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
 }
 
 control MyEgress(inout headers hdr, inout metadata meta, inout standard_metadata_t std_meta) { apply { } }
-control MyComputeChecksum(inout headers hdr, inout metadata meta) { apply { } }
+control MyComputeChecksum(inout headers hdr, inout metadata meta) {
+    apply {
+        update_checksum(hdr.ipv4.isValid(), {
+            hdr.ipv4.version,
+            hdr.ipv4.ihl,
+            hdr.ipv4.diffserv,
+            hdr.ipv4.totalLen,
+            hdr.ipv4.identification,
+            hdr.ipv4.flags,
+            hdr.ipv4.fragOffset,
+            hdr.ipv4.ttl,
+            hdr.ipv4.protocol,
+            hdr.ipv4.srcAddr,
+            hdr.ipv4.dstAddr
+        }, hdr.ipv4.hdrChecksum, HashAlgorithm.csum16);
+    }
+}
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);

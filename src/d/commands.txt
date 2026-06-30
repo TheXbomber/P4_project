@@ -1,14 +1,13 @@
-
 table_set_default MyIngress.sff_nsh_forwarding drop
 table_set_default MyIngress.sf_return_proxy drop
 
 table_add MyIngress.sff_nsh_forwarding proxy_to_sf 13 3 => 0 00:1b:00:00:00:00
-
 table_add MyIngress.sff_nsh_forwarding proxy_to_sf 13 1 => 1 00:2b:00:00:00:00
 
-table_add MyIngress.sf_return_proxy proxy_return_to_core 0 13 => 13 2 102 3 00:0f:00:00:00:00
-
+table_add MyIngress.sf_return_proxy proxy_return_to_core 0 13 => 13 2 102 2 00:0f:00:00:00:00
 table_add MyIngress.sf_return_proxy sf_final_forward 1 13 => 2 00:0f:00:00:00:00
 
-table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.0.1.10/32 => 2 00:5a:00:00:00:00
-table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.0.1.20/32 => 2 00:6a:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.0.1.10/32 => 3 00:0b:01:00:00:00
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.0.1.20/32 => 3 00:0b:01:00:00:00
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.1.1.10/32 => 2 00:0f:00:00:00:00
+table_add MyIngress.native_ipv4_shortest_path ipv4_forward 10.1.1.20/32 => 2 00:0f:00:00:00:00
