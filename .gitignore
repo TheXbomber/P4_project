@@ -8,6 +8,8 @@ venv/
 env/
 .env/
 
+src/shared/logs/*
+src/shared/pkt_captures/*
 # Python Cache
 __pycache__/
 *.py[cod]

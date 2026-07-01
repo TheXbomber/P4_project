@@ -10,9 +10,11 @@ ip link set eth3 up
 
 p4c /shared/sff.p4 -o /
 
-simple_switch -i 0@eth0 -i 1@eth1 -i 2@eth2 -i 3@eth3 sff.json --log-file /shared/e.log &
+simple_switch -i 0@eth0 -i 1@eth1 -i 2@eth2 -i 3@eth3 sff.json --log-file /shared/logs/e.log &
 
 while [[ $(pgrep simple_switch) -eq 0 ]]; do sleep 1; done
 until simple_switch_CLI <<< "help"; do sleep 1; done
 
 simple_switch_CLI <<< $(cat commands.txt)
+
+tcpdump -i eth0 -w /shared/pkt_captures/e_eth0.pcap -U & 
