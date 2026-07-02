@@ -3,6 +3,5 @@ ip link set eth0 address 00:1b:00:00:00:00
 ip addr add 10.50.1.10/24 dev eth0
 ip link set eth0 up
 ip route add default via 10.50.1.1
-ip neigh add 10.50.1.1 lladdr 00:00:00:00:00:D0 dev eth0
+ip neigh add 10.50.1.1 lladdr 00:0d:00:00:00:00 dev eth0
 
-python3 /reflector.py > /shared/logs/ref_sf1.log & 
