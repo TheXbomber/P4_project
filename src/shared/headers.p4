@@ -19,16 +19,26 @@ header mpls_t {
     bit<8>  ttl;
 }
 
-// Network Service Header (NSH) - Simplified 8-byte version
-header nsh_t {
+header nsh_base_t {
     bit<2>  ver;
     bit<1>  oam;
-    bit<1>  context;
-    bit<4>  critical;
-    bit<8>  md_type;
-    bit<8>  next_proto; // Should indicate inner Ethernet/IPv4
-    bit<24> spi;        // Service Path Identifier
-    bit<8>  si;         // Service Index
+    bit<1>  context;     // Unused/Reserved bit
+    bit<6>  reserved;    // Reserved bits
+    bit<6>  length;      // Length of NSH header in 4-byte words (6 for MD Type 1)
+    bit<8>  md_type;     // Metadata Type (1 for MD Type 1)
+    bit<8>  next_proto;  // Next Protocol (3 for Ethernet)
+}
+
+header nsh_sfp_t {
+    bit<24> spi;         // Service Path Identifier
+    bit<8>  si;          // Service Index
+}
+
+header nsh_context_t {
+    bit<32> c1;          // Mandatory Context Header 1
+    bit<32> c2;          // Mandatory Context Header 2
+    bit<32> c3;          // Mandatory Context Header 3
+    bit<32> c4;          // Mandatory Context Header 4
 }
 
 // Standard IPv4 Header
@@ -48,11 +58,13 @@ header ipv4_t {
 }
 
 struct headers {
-    ethernet_t ethernet;
-    mpls_t     mpls;
-    nsh_t      nsh;
-    ethernet_t inner_ethernet; // For Eth/MPLS/NSH/Eth/IPv4 encapsulation
-    ipv4_t     ipv4;
+    ethernet_t    ethernet;
+    mpls_t        mpls;
+    ethernet_t    nsh_ethernet;   // Intermediate Ethernet wrapper for NSH (etherType = 0x894F)
+    nsh_base_t    nsh_base;
+    nsh_sfp_t     nsh_sfp;
+    nsh_context_t nsh_context;
+    ipv4_t        ipv4;
 }
 
 struct metadata {

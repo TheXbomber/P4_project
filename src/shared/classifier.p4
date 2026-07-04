@@ -24,15 +24,29 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
     
     // Action to classify and onboard a packet into an SFC chain
     action sfc_encapsulate(bit<24> spi, bit<8> si, bit<20> mpls_label, bit<9> egress_port, bit<48> next_hop_mac) {
-        // 1. Shift outer ethernet to inner ethernet
-        hdr.inner_ethernet = hdr.ethernet;
-        
-        // 2. Format NSH
-        hdr.nsh.setValid();
-        hdr.nsh.ver = 0;
-        hdr.nsh.spi = spi;
-        hdr.nsh.si = si;
-        hdr.nsh.next_proto = 0x3; // Custom value indicating inner Ethernet
+        hdr.nsh_ethernet.setValid();
+        hdr.nsh_ethernet.srcAddr = 0x111111111111;
+        hdr.nsh_ethernet.dstAddr = 0x222222222222;
+        hdr.nsh_ethernet.etherType = 0x894F; // NSH EtherType
+
+        hdr.nsh_base.setValid();
+        hdr.nsh_base.ver        = 0;
+        hdr.nsh_base.oam        = 0;
+        hdr.nsh_base.context    = 0;
+        hdr.nsh_base.reserved   = 0;
+        hdr.nsh_base.length     = 0x6;  // 6 words = 24 bytes total
+        hdr.nsh_base.md_type    = 0x1;  // MD Type 1
+        hdr.nsh_base.next_proto = 0x1;  // Direct IPv4 payload
+
+        hdr.nsh_sfp.setValid();
+        hdr.nsh_sfp.spi         = spi;
+        hdr.nsh_sfp.si          = si;
+
+        hdr.nsh_context.setValid();
+        hdr.nsh_context.c1      = 0;
+        hdr.nsh_context.c2      = 0;
+        hdr.nsh_context.c3      = 0;
+        hdr.nsh_context.c4      = 0;
         
         // 3. Format MPLS
         hdr.mpls.setValid();
@@ -89,8 +103,10 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.mpls);
-        packet.emit(hdr.nsh);
-        packet.emit(hdr.inner_ethernet);
+        packet.emit(hdr.nsh_ethernet);
+        packet.emit(hdr.nsh_base);
+        packet.emit(hdr.nsh_sfp);
+        packet.emit(hdr.nsh_context);
         packet.emit(hdr.ipv4);
     }
 }

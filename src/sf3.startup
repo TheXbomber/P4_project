@@ -3,7 +3,9 @@ ip link set eth0 address 00:3b:00:00:00:00
 ip addr add 10.50.3.10/24 dev eth0
 ip link set eth0 up
 ip route add default via 10.50.3.1
-
 ip neigh add 10.50.3.1 lladdr 00:0e:00:00:00:00 dev eth0
 
-python3 reflector.py &
+iptables -A INPUT -j DROP
+iptables -A FORWARD -j DROP
+
+python3 /shared/reflector.py &
