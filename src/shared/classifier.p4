@@ -27,12 +27,18 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         // 1. Shift outer ethernet to inner ethernet
         hdr.inner_ethernet = hdr.ethernet;
         
-        // 2. Format NSH
+        // 2. Format NSH (RFC 8300 base header, 8 bytes, no context headers)
         hdr.nsh.setValid();
-        hdr.nsh.ver = 0;
+        hdr.nsh.ver        = 0;
+        hdr.nsh.oam        = 0;
+        hdr.nsh.reserved1  = 0;
+        hdr.nsh.ttl        = 63;
+        hdr.nsh.length     = 2;   // 8 bytes / 4 words, no metadata
+        hdr.nsh.reserved2  = 0;
+        hdr.nsh.md_type    = 2;   // variable-length context, zero context headers present
+        hdr.nsh.next_proto = 3;   // 3 = Ethernet (we carry inner_ethernet)
         hdr.nsh.spi = spi;
-        hdr.nsh.si = si;
-        hdr.nsh.next_proto = 0x3; // Custom value indicating inner Ethernet
+        hdr.nsh.si  = si;
         
         // 3. Format MPLS
         hdr.mpls.setValid();

@@ -52,7 +52,16 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
     action proxy_return_to_core(bit<24> spi, bit<8> next_si, bit<20> next_mpls, bit<9> egress_port, bit<48> next_hop_mac) {
         hdr.inner_ethernet = hdr.ethernet;
 
+        // Re-encapsulate into an RFC 8300-compliant NSH base header (8 bytes, no context)
         hdr.nsh.setValid();
+        hdr.nsh.ver        = 0;
+        hdr.nsh.oam        = 0;
+        hdr.nsh.reserved1  = 0;
+        hdr.nsh.ttl        = 63;
+        hdr.nsh.length     = 2;   // 8 bytes / 4 words, no metadata
+        hdr.nsh.reserved2  = 0;
+        hdr.nsh.md_type    = 2;   // variable-length context, zero context headers present
+        hdr.nsh.next_proto = 3;   // 3 = Ethernet (we carry inner_ethernet)
         hdr.nsh.spi = spi;
         hdr.nsh.si  = next_si;
 
@@ -115,9 +124,16 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
 
     apply {
         if (hdr.mpls.isValid() && hdr.nsh.isValid()) {
-            sff_nsh_forwarding.apply();
+            // RFC 8300 hop-by-hop TTL enforcement / loop prevention
+            if (hdr.nsh.ttl == 0) {
+                drop();
+            } else {
+                hdr.nsh.ttl = hdr.nsh.ttl - 1;
+                sff_nsh_forwarding.apply();
+            }
         } else if (!hdr.mpls.isValid() && !hdr.nsh.isValid() && hdr.ipv4.isValid()) {
-            // Decode SPI from DSCP (upper 6 bits of diffserv)
+            // Decode SPI from DSCP (upper 6 bits of diffserv).
+            // Encoding stored (spi - 1), so add 1 back to reconstruct the real SPI.
             meta.spi = (bit<24>)(hdr.ipv4.diffserv >> 2) + 1;
             if (sf_return_proxy.apply().miss) {
                 native_ipv4_shortest_path.apply();

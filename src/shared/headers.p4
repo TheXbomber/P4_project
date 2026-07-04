@@ -19,16 +19,18 @@ header mpls_t {
     bit<8>  ttl;
 }
 
-// Network Service Header (NSH) - Simplified 8-byte version
+// Network Service Header (NSH) - RFC 8300 compliant base header (8 bytes)
 header nsh_t {
     bit<2>  ver;
     bit<1>  oam;
-    bit<1>  context;
-    bit<4>  critical;
-    bit<8>  md_type;
-    bit<8>  next_proto; // Should indicate inner Ethernet/IPv4
-    bit<24> spi;        // Service Path Identifier
-    bit<8>  si;         // Service Index
+    bit<1>  reserved1;   // "U" bit - unused, must be 0
+    bit<6>  ttl;
+    bit<6>  length;      // total NSH length in 4-byte words
+    bit<4>  reserved2;   // "UUUU" - unused, must be 0
+    bit<4>  md_type;     // 0x2 = variable-length context (0 context headers here)
+    bit<8>  next_proto;  // IANA: 0x1=IPv4, 0x2=IPv6, 0x3=Ethernet, 0x4=NSH, 0x5=MPLS
+    bit<24> spi;         // Service Path Identifier
+    bit<8>  si;          // Service Index
 }
 
 // Standard IPv4 Header
