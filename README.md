@@ -35,15 +35,10 @@ and open the capture with Wireshark.
 |    - Label     : Core routing label (e.g., 102, 107)                  |
 |    - BoS       : 1 (Bottom of Stack)                                  |
 +-----------------------------------------------------------------------+
-|  Intermediate Ethernet Header (NSH Indicator)                         |
-|    - Dst MAC   : 22:22:22:22:22:22 (Dummy)                            |
-|    - Src MAC   : 11:11:11:11:11:11 (Dummy)                            |
-|    - EtherType : 0x894F (NSH EtherType)                               | <--- Triggers Wireshark NSH Dissector
-+-----------------------------------------------------------------------+
 |  NSH Base Header                                                      |
 |    - Length    : 6 (indicates 24-byte NSH header length)              |
 |    - MD Type   : 1 (Metadata Type 1)                                  |
-|    - Next Proto: 1 (Direct IPv4 Payload)                              | <--- Tells Wireshark IPv4 immediately follows
+|    - Next Proto: 3 (Ethernet)                                         | <--- Tells Wireshark Ethernet follows
 +-----------------------------------------------------------------------+
 |  NSH Service Path Header                                              |
 |    - SPI       : Service Path ID (e.g., 13)                           |
@@ -51,6 +46,11 @@ and open the capture with Wireshark.
 +-----------------------------------------------------------------------+
 |  NSH Context Headers                                                  |
 |    - c1, c2, c3, c4 (16 bytes of metadata initialized to 0)            |
++-----------------------------------------------------------------------+
+|  Inner Ethernet Header                                                |
+|    - Dst MAC   : Final Host MAC / Router Gateway                      |
+|    - Src MAC   : Originating Host MAC                                 |
+|    - EtherType : 0x0800 (IPv4)                                        |
 +-----------------------------------------------------------------------+
 |  IPv4 Header (Original payload)                                       |
 |    - Src IP    : Client Host IP (e.g., 10.0.1.10)                     |
@@ -61,9 +61,12 @@ and open the capture with Wireshark.
 |  Payload Data (e.g., iperf3 traffic)                                  |
 +-----------------------------------------------------------------------+
 ```
-To see NSH header in Wireshark right click on a MPLS packet -> Decode As -> Ethernet PW (no CW).
+To automatically decode the NSH header and payload natively in Wireshark, run it with the Lua dissector script:
+```
+wireshark -X lua_script:shared/nsh_mpls.lua <path_to_pcap>
+```
 
-### SFF transit links (SFF to SFF) ###
+### Service Function links (SFF to SF / SF to SFF) ###
 
 ```
 +-----------------------------------------------------------------------+

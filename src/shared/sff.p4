@@ -12,14 +12,7 @@ parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout st
     state parse_mpls {
         packet.extract(hdr.mpls);
         transition select(hdr.mpls.bos) {
-            1: parse_nsh_ethernet;
-            default: accept;
-        }
-    }
-    state parse_nsh_ethernet {
-        packet.extract(hdr.nsh_ethernet);
-        transition select(hdr.nsh_ethernet.etherType) {
-            0x894F: parse_nsh_base;
+            1: parse_nsh_base;
             default: accept;
         }
     }
@@ -33,12 +26,19 @@ parser MyParser(packet_in packet, out headers hdr, inout metadata meta, inout st
         packet.extract(hdr.nsh_sfp);
         transition select(hdr.nsh_base.md_type) {
             0x01: parse_nsh_context;
-            default: parse_ipv4;
+            default: parse_inner_ethernet;
         }
     }
     state parse_nsh_context {
         packet.extract(hdr.nsh_context);
-        transition parse_ipv4;
+        transition parse_inner_ethernet;
+    }
+    state parse_inner_ethernet {
+        packet.extract(hdr.inner_ethernet);
+        transition select(hdr.inner_ethernet.etherType) {
+            0x0800: parse_ipv4;
+            default: accept;
+        }
     }
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
@@ -61,22 +61,20 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         hdr.ipv4.diffserv = (bit<8>)(((bit<8>)(hdr.nsh_sfp.spi - 1) << 2) | (hdr.ipv4.diffserv & 3));
 
         hdr.mpls.setInvalid();
-        hdr.nsh_ethernet.setInvalid();
         hdr.nsh_base.setInvalid();
         hdr.nsh_sfp.setInvalid();
         hdr.nsh_context.setInvalid();
         
-        // Rewrite the outer ethernet to become the native IP interface to the SF
-        hdr.ethernet.etherType = 0x0800; // IPv4
+        // Restore original preserved Ethernet header
+        hdr.ethernet = hdr.inner_ethernet;
         hdr.ethernet.dstAddr   = sf_mac;
+        hdr.inner_ethernet.setInvalid();
         std_meta.egress_spec   = egress_port;
     }
 
     action proxy_return_to_core(bit<24> spi, bit<8> next_si, bit<20> next_mpls, bit<9> egress_port, bit<48> next_hop_mac) {
-        hdr.nsh_ethernet.setValid();
-        hdr.nsh_ethernet.srcAddr = 0x111111111111;
-        hdr.nsh_ethernet.dstAddr = 0x222222222222;
-        hdr.nsh_ethernet.etherType = 0x894F; // NSH EtherType
+        // Shift native ethernet to become inner ethernet
+        hdr.inner_ethernet = hdr.ethernet;
 
         hdr.nsh_base.setValid();
         hdr.nsh_base.ver        = 0;
@@ -85,7 +83,7 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
         hdr.nsh_base.reserved   = 0;
         hdr.nsh_base.length     = 0x6;  // 6 words = 24 bytes total
         hdr.nsh_base.md_type    = 0x1;  // MD Type 1
-        hdr.nsh_base.next_proto = 0x1;  // Direct IPv4 payload
+        hdr.nsh_base.next_proto = 0x3;  // Inner Ethernet
 
         hdr.nsh_sfp.setValid();
         hdr.nsh_sfp.spi         = spi;
@@ -115,14 +113,14 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
 
     action end_of_chain_routing(bit<9> egress_port, bit<48> next_hop_mac) {
         hdr.mpls.setInvalid();
-        hdr.nsh_ethernet.setInvalid();
         hdr.nsh_base.setInvalid();
         hdr.nsh_sfp.setInvalid();
         hdr.nsh_context.setInvalid();
         
-        // Strip encapsulation and route as native IP packet
-        hdr.ethernet.etherType = 0x0800; // IPv4
+        // Restore original preserved Ethernet header and route
+        hdr.ethernet = hdr.inner_ethernet;
         hdr.ethernet.dstAddr   = next_hop_mac;
+        hdr.inner_ethernet.setInvalid();
         std_meta.egress_spec   = egress_port;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
@@ -193,10 +191,10 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.mpls);
-        packet.emit(hdr.nsh_ethernet);
         packet.emit(hdr.nsh_base);
         packet.emit(hdr.nsh_sfp);
         packet.emit(hdr.nsh_context);
+        packet.emit(hdr.inner_ethernet);
         packet.emit(hdr.ipv4);
     }
 }

@@ -19,6 +19,7 @@ header mpls_t {
     bit<8>  ttl;
 }
 
+// NSH Header
 header nsh_base_t {
     bit<2>  ver;
     bit<1>  oam;
@@ -60,10 +61,10 @@ header ipv4_t {
 struct headers {
     ethernet_t    ethernet;
     mpls_t        mpls;
-    ethernet_t    nsh_ethernet;   // Intermediate Ethernet wrapper for NSH (etherType = 0x894F)
     nsh_base_t    nsh_base;
     nsh_sfp_t     nsh_sfp;
     nsh_context_t nsh_context;
+    ethernet_t    inner_ethernet;
     ipv4_t        ipv4;
 }
 
