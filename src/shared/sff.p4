@@ -118,7 +118,7 @@ control MyIngress(inout headers hdr, inout metadata meta, inout standard_metadat
             sff_nsh_forwarding.apply();
         } else if (!hdr.mpls.isValid() && !hdr.nsh.isValid() && hdr.ipv4.isValid()) {
             // Decode SPI from DSCP (upper 6 bits of diffserv)
-            meta.spi = (bit<24>)(hdr.ipv4.diffserv >> 2);
+            meta.spi = (bit<24>)(hdr.ipv4.diffserv >> 2) + 1;
             if (sf_return_proxy.apply().miss) {
                 native_ipv4_shortest_path.apply();
             }

@@ -6,4 +6,4 @@ ethtool -K eth0 tx off
 ip route add default via 10.1.1.1
 ip neigh add 10.1.1.1 lladdr 00:00:00:00:00:0H dev eth0
 
-#iperf3 -s &
+iperf3 -s &
