@@ -20,7 +20,10 @@ Setup a capture with
 ```
 tcpdump -i <interface> -w /shared/pkt_captures/<name>.pcap
 ```
-and open the capture with Wireshark.
+and open the capture with
+```
+./wireshark.sh <path_to_pcap>
+```
 
 ## Packet structure ##
 ### Core transit links (SFF to SFF) ###

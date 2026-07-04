@@ -16,3 +16,8 @@ while [[ $(pgrep simple_switch) -eq 0 ]]; do sleep 1; done
 until simple_switch_CLI <<< "help"; do sleep 1; done
 
 simple_switch_CLI <<< $(cat commands.txt)
+
+tcpdump -i eth0 -w /shared/pkt_captures/h_eth0.pcap -U & 
+tcpdump -i eth1 -w /shared/pkt_captures/h_eth1.pcap -U & 
+tcpdump -i eth2 -w /shared/pkt_captures/h_eth2.pcap -U & 
+tcpdump -i eth3 -w /shared/pkt_captures/h_eth3.pcap -U &

@@ -6,3 +6,11 @@ ethtool -K eth0 tx off
 ip addr add 10.0.1.20/24 dev eth0
 ip route add default via 10.0.1.1
 ip neigh add 10.0.1.1 lladdr 00:00:00:00:00:0A dev eth0
+
+# Wait until h4 (10.1.1.20) is listening on port 5201
+echo "Waiting for h4 iperf3 server..."
+while ! timeout 1 bash -c 'cat < /dev/null > /dev/tcp/10.1.1.20/5201' 2>/dev/null; do
+    sleep 1
+done
+echo "Server is ready. Starting bandwidth test..."
+iperf3 -c 10.1.1.20 -t 5 > /shared/logs/h2_test_results.log 2>&1
