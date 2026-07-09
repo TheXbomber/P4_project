@@ -30,10 +30,15 @@ This project implements a **Service Function Chain (SFC)** architecture in P4. T
 ---
 
 ## Setup ##
-Custom image for service function nodes must be built by running:
+Move to the `src` folder and build the custom image for the service function nodes by running:
 ```
 docker build -f dockerfile.sf -t service_function .
 ```
+Launch the Katharà lab with
+```
+kathara lstart
+```
+
 ## Testing ##
 Open a server (servers are automatically opened at startup in `h3` and `h4`) with
 ```
@@ -49,9 +54,9 @@ Setup a capture in the desired device with
 ```
 tcpdump -i <interface> -w /shared/pkt_captures/<filename>.pcap
 ```
-and inspect it through Wireshark with
+and inspect it in your machine through Wireshark with
 ```
-./src/inspect_capture.sh <filename>.pcap
+./inspect_capture.sh <filename>.pcap
 ```
 Make sure to use the `inspect_capture.sh` script to open Wireshark: this allows the program to correctly show the Network Service Header.
 
