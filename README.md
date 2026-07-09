@@ -27,6 +27,26 @@ This project implements a **Service Function Chain (SFC)** architecture in P4. T
    * **SFC 24 (h2 $\rightarrow$ h4)**: `h2` $\rightarrow$ `sf3` (on `e`) $\rightarrow$ `h4`.
    * **Return Traffic**: Bypasses the service chains and follows the shortest path natively over IPv4.
 
+### P4 Programs Description
+
+The architecture is implemented across three main P4 programs located in `src/shared/`:
+
+*   **`classifier.p4`**: Implements the SFC Classifier.
+    *   Parses incoming native Ethernet and IPv4 headers.
+    *   Applies a classification lookup table (`sfc_classification`). For matching packets, it executes the `sfc_encapsulate` action: shifts the outer Ethernet header to `inner_ethernet`, sets NSH fields (version, length, metadata type, SPI, SI, next protocol), sets the MPLS shim header (bottom-of-stack set to `1`), and updates the outer transport Ethernet frame.
+    *   For non-matching packets, it applies ordinary IPv4 shortest-path routing.
+*   **`sff.p4`**: Implements the Service Function Forwarder (SFF) and proxy behavior.
+    *   Defines parser states to sequentially extract NSH sub-headers (`nsh_base`, `nsh_sfp`, `nsh_context`) and the nested `inner_ethernet` frame.
+    *   Applies the `sff_nsh_forwarding` table to match packets on `(SPI, SI)`:
+        *   **`proxy_to_sf`**: Forwards to a local SF. It invalidates the MPLS and NSH headers, copies the preserved `inner_ethernet` back to the outer `ethernet` header, and encodes the SPI into the DSCP bits of the IPv4 header for metadata persistence.
+        *   **`end_of_chain_routing`**: For chain completion (last SF visited). Strips NSH/MPLS and forwards natively to the final destination.
+    *   Applies the `sf_return_proxy` table for returning packets from local SFs:
+        *   **`proxy_return_to_core`**: Recovers the SPI from DSCP, decrements the SI (`SI = SI - 1`), restores the NSH context, re-encapsulates it in the MPLS tunnel, and routes it to the next hop.
+*   **`transit.p4`**: Implements transit routing nodes.
+    *   Only parses outer `ethernet` and `mpls` headers, leaving the MPLS payload (NSH and inner headers) unparsed.
+    *   Applies the `mpls_core_transit` table to match on the outer MPLS label, swap it, and forward the packet to the next hop.
+    *   Also includes standard IPv4 shortest-path routing for return traffic (which travels unencapsulated).
+
 ---
 
 ## Setup ##
